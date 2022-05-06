@@ -47,7 +47,7 @@ void Serial::init(const string& path, int rate) {
   struct termios tio;
 
   tty_fd=open(path.c_str(), O_RDWR|O_NOCTTY);
-  if (tty_fd < 0) throw -10;
+  if (tty_fd < 0) throw SerialException("invalid path");
   
   tcgetattr(tty_fd, &tio);
   
@@ -118,14 +118,13 @@ int Serial::write(const char* buffer, uint16_t len) {
 }
 
 void Serial::set_timeout(int tout) {
+    if (tout < 0) throw SerialException("timeout must be >= 0");
     timeout = tout;
     
     if (timeout) {
         t.tv_sec = timeout / 1000;
         t.tv_usec = 1000*(timeout % 1000);
     }
-    //cout << "set_timeout: "<< tout <<", sec=" << t.tv_sec << ", usec=" << t.tv_usec << endl;
-    
 }
 
 int Serial::read(char* buffer, uint16_t len, bool block) {
@@ -138,7 +137,6 @@ int Serial::read(char* buffer, uint16_t len, bool block) {
         if (timeout) {
             ptr = &t;
         }
-        //cout << "t: sec=" << t.tv_sec << ", usec=" << t.tv_usec << endl;
         int n = select (tty_fd+1, &r, NULL, NULL, ptr);
         if (n <= 0) return 0;
     }
@@ -162,7 +160,7 @@ vector<char> Serial::read(uint16_t len, bool block) {
     vector<char> buffer(len, 0);
 
     auto n = read(buffer.data(), len, block);
-    buffer.resize(n);
+    if (n >= 0) buffer.resize(n);
 
     return buffer;
 }
